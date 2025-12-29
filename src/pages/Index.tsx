@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useWallet } from '@/hooks/useWallet';
 import { LandingScreen } from '@/components/LandingScreen';
+import { XHandlePrompt } from '@/components/XHandlePrompt';
 import { MaxiCard } from '@/components/MaxiCard';
 import { ShareActions } from '@/components/ShareActions';
 import { TwitterFeed } from '@/components/TwitterFeed';
@@ -13,62 +14,92 @@ interface Tweet {
   created_at: string;
 }
 
+type AppStep = 'landing' | 'x-handle' | 'card';
+
 const Index = () => {
   const { isConnecting, walletData, persona, error, connectWallet, reset } = useWallet();
+  const [step, setStep] = useState<AppStep>('landing');
   const [xHandle, setXHandle] = useState<string>('');
   const [xBio, setXBio] = useState<string>('');
   const [xTweets, setXTweets] = useState<Tweet[]>([]);
   const [isLoadingBio, setIsLoadingBio] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Fetch X bio and tweets when we have both wallet and X handle
+  // Move to X handle step when wallet connects
   useEffect(() => {
-    const fetchXData = async () => {
-      if (!xHandle || !walletData) return;
+    if (walletData && persona && step === 'landing') {
+      setStep('x-handle');
+    }
+  }, [walletData, persona, step]);
 
-      setIsLoadingBio(true);
-      try {
-        const { data, error } = await supabase.functions.invoke('get-twitter-bio', {
-          body: { username: xHandle },
-        });
+  // Fetch X bio and tweets when we have handle and move to card
+  const fetchXData = async (handle: string) => {
+    if (!handle) {
+      setStep('card');
+      return;
+    }
 
-        if (error) throw error;
-        if (data?.bio) {
-          setXBio(data.bio);
-        }
-        if (data?.tweets) {
-          setXTweets(data.tweets);
-        }
-      } catch (err) {
-        console.error('Failed to fetch X data:', err);
-      } finally {
-        setIsLoadingBio(false);
+    setXHandle(handle);
+    setIsLoadingBio(true);
+    setStep('card');
+
+    try {
+      const { data, error } = await supabase.functions.invoke('get-twitter-bio', {
+        body: { username: handle },
+      });
+
+      if (error) throw error;
+      if (data?.bio) {
+        setXBio(data.bio);
       }
-    };
+      if (data?.tweets) {
+        setXTweets(data.tweets);
+      }
+    } catch (err) {
+      console.error('Failed to fetch X data:', err);
+    } finally {
+      setIsLoadingBio(false);
+    }
+  };
 
-    fetchXData();
-  }, [xHandle, walletData]);
+  const handleXSubmit = (handle: string) => {
+    fetchXData(handle);
+  };
+
+  const handleXSkip = () => {
+    setStep('card');
+  };
 
   const handleReset = () => {
     reset();
+    setStep('landing');
     setXHandle('');
     setXBio('');
     setXTweets([]);
   };
 
-  // Show landing screen if no wallet connected
-  if (!walletData || !persona) {
+  // Step 1: Landing - Connect Wallet
+  if (step === 'landing' || !walletData || !persona) {
     return (
       <LandingScreen
         onConnect={connectWallet}
-        onXHandle={setXHandle}
         isConnecting={isConnecting}
         error={error}
       />
     );
   }
 
-  // Show result card
+  // Step 2: X Handle Prompt
+  if (step === 'x-handle') {
+    return (
+      <XHandlePrompt
+        onSubmit={handleXSubmit}
+        onSkip={handleXSkip}
+      />
+    );
+  }
+
+  // Step 3: Show Card
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
       {/* Decorative elements */}
