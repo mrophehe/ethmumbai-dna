@@ -3,19 +3,27 @@ import { useWallet } from '@/hooks/useWallet';
 import { LandingScreen } from '@/components/LandingScreen';
 import { MaxiCard } from '@/components/MaxiCard';
 import { ShareActions } from '@/components/ShareActions';
+import { TwitterFeed } from '@/components/TwitterFeed';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
+
+interface Tweet {
+  id: string;
+  text: string;
+  created_at: string;
+}
 
 const Index = () => {
   const { isConnecting, walletData, persona, error, connectWallet, reset } = useWallet();
   const [xHandle, setXHandle] = useState<string>('');
   const [xBio, setXBio] = useState<string>('');
+  const [xTweets, setXTweets] = useState<Tweet[]>([]);
   const [isLoadingBio, setIsLoadingBio] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Fetch X bio when we have both wallet and X handle
+  // Fetch X bio and tweets when we have both wallet and X handle
   useEffect(() => {
-    const fetchXBio = async () => {
+    const fetchXData = async () => {
       if (!xHandle || !walletData) return;
 
       setIsLoadingBio(true);
@@ -28,20 +36,24 @@ const Index = () => {
         if (data?.bio) {
           setXBio(data.bio);
         }
+        if (data?.tweets) {
+          setXTweets(data.tweets);
+        }
       } catch (err) {
-        console.error('Failed to fetch X bio:', err);
+        console.error('Failed to fetch X data:', err);
       } finally {
         setIsLoadingBio(false);
       }
     };
 
-    fetchXBio();
+    fetchXData();
   }, [xHandle, walletData]);
 
   const handleReset = () => {
     reset();
     setXHandle('');
     setXBio('');
+    setXTweets([]);
   };
 
   // Show landing screen if no wallet connected
@@ -93,6 +105,11 @@ const Index = () => {
         xHandle={xHandle}
         onReset={handleReset}
       />
+
+      {/* Twitter Feed - Rendered below Share Actions */}
+      {xHandle && xTweets.length > 0 && (
+        <TwitterFeed tweets={xTweets} username={xHandle} />
+      )}
     </div>
   );
 };
