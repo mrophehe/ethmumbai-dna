@@ -1,27 +1,14 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Wallet, Twitter, Loader2, Zap } from 'lucide-react';
+import { Wallet, Loader2, Zap } from 'lucide-react';
 
 interface LandingScreenProps {
   onConnect: () => void;
-  onXHandle: (handle: string) => void;
   isConnecting: boolean;
   error: string | null;
 }
 
-export function LandingScreen({ onConnect, onXHandle, isConnecting, error }: LandingScreenProps) {
-  const [xHandle, setXHandle] = useState('');
-  const [showXInput, setShowXInput] = useState(false);
-
-  const handleXSubmit = () => {
-    if (xHandle.trim()) {
-      // Remove @ if present
-      const cleanHandle = xHandle.replace('@', '').trim();
-      onXHandle(cleanHandle);
-    }
-  };
-
+export function LandingScreen({ onConnect, isConnecting, error }: LandingScreenProps) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 animate-slide-up">
       {/* Decorative elements */}
@@ -50,7 +37,7 @@ export function LandingScreen({ onConnect, onXHandle, isConnecting, error }: Lan
           Check your ETHMumbai DNA 🧬
         </p>
 
-        {/* Buttons */}
+        {/* Connect Button */}
         <div className="flex flex-col gap-4 items-center">
           <Button
             onClick={onConnect}
@@ -70,36 +57,6 @@ export function LandingScreen({ onConnect, onXHandle, isConnecting, error }: Lan
               </>
             )}
           </Button>
-
-          {!showXInput ? (
-            <Button
-              onClick={() => setShowXInput(true)}
-              variant="ghost"
-              size="lg"
-              className="w-full max-w-xs text-lg h-14 font-semibold text-foreground/80 hover:text-foreground hover:bg-foreground/10 border-2 border-foreground/20"
-            >
-              <Twitter className="mr-2 h-5 w-5" />
-              Add X Handle
-            </Button>
-          ) : (
-            <div className="flex gap-2 w-full max-w-xs">
-              <Input
-                value={xHandle}
-                onChange={(e) => setXHandle(e.target.value)}
-                placeholder="@username"
-                className="h-14 text-lg bg-foreground/10 border-foreground/30 text-foreground placeholder:text-foreground/50"
-                onKeyDown={(e) => e.key === 'Enter' && handleXSubmit()}
-              />
-              <Button 
-                onClick={handleXSubmit}
-                size="lg"
-                className="h-14 px-6"
-                disabled={!xHandle.trim()}
-              >
-                Add
-              </Button>
-            </div>
-          )}
         </div>
 
         {/* Error message */}
